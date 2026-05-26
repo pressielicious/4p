@@ -1,21 +1,266 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ABRP-SB</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>4P Tracker</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --primary:#5A0000;
+  --primary-light:#7A1111;
+  --primary-dark:#3A0000;
+  --bg:#090909;
+  --card:#141414;
+  --text:#ffffff;
+  --muted:#9a9a9a;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Inter,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding:16px;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+}
+
+.header{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  padding:22px;
+  border-radius:20px;
+  margin-bottom:14px;
+  box-shadow:0 10px 30px rgba(90,0,0,0.25);
+}
+
+.title{
+  font-size:26px;
+  font-weight:700;
+}
+
+.subtitle{
+  font-size:13px;
+  opacity:0.8;
+  margin-top:6px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.card{
+  background:var(--card);
+  padding:16px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+
+.label{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.big{
+  font-size:28px;
+  font-weight:700;
+  margin-top:6px;
+}
+
+.search input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  outline:none;
+  background:var(--card);
+  color:white;
+  margin-bottom:12px;
+}
+
+/* 3 COLUMN LAYOUT */
+.players{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+}
+
+.player{
+  background:var(--card);
+  padding:12px;
+  border-radius:14px;
+  border-left:4px solid var(--primary-light);
+  transition:0.15s ease;
+}
+
+.player:hover{
+  transform:translateY(-2px);
+}
+
+.name{
+  font-weight:600;
+  font-size:15px;
+  word-break:break-word;
+}
+
+.id{
+  margin-top:6px;
+  display:inline-block;
+  padding:6px 10px;
+  background:rgba(90,0,0,0.2);
+  border-radius:999px;
+  font-size:12px;
+  color:#ffb3b3;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:30px;
+  grid-column:1 / -1;
+}
+
+.footer{
+  text-align:center;
+  margin-top:20px;
+  color:#888;
+  font-size:13px;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .players{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:600px){
+  .players{
+    grid-template-columns:1fr;
+  }
+  .title{
+    font-size:22px;
+  }
+}
+</style>
 </head>
 <body>
 
-    <div id="map"></div>
+<div class="container">
 
-    <button id="undoButton">Undo Hide</button>
-    <button id="tsunamiButton">Tsunami</button>
+<div class="header">
+  <div class="title">4P Tracker</div>
+  <div class="subtitle">Live monitor 4P players (auto refresh 5s)</div>
+</div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+<div class="grid">
+  <div class="card">
+    <div class="label">4P Players Online</div>
+    <div class="big" id="count">0</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Last Update</div>
+    <div class="big" id="time" style="font-size:16px">-</div>
+  </div>
+</div>
+
+<div class="search">
+  <input id="search" placeholder="Search player name..." />
+</div>
+
+<div class="players" id="players">
+  <div class="empty">Loading...</div>
+</div>
+
+<div class="footer">
+Auto refresh every 5 seconds
+</div>
+
+</div>
+
+<script>
+const API = "https://servers-frontend.fivem.net/api/servers/single/7y66bb";
+let cache = [];
+
+function is4P(name){
+  return /4P/i.test(String(name));
+}
+
+function getPlayers(data){
+  return (
+    data?.Data?.players ||
+    data?.Data?.Players ||
+    data?.Data?.clients ||
+    []
+  );
+}
+
+function render(players){
+  const el = document.getElementById("players");
+
+  if(!players.length){
+    el.innerHTML = `<div class='empty'>No 4P players online</div>`;
+    return;
+  }
+
+  el.innerHTML = players.map(p => `
+    <div class="player">
+      <div class="name">${p.name}</div>
+      <div class="id">ID: ${p.id ?? 'N/A'}</div>
+    </div>
+  `).join('');
+}
+
+async function load(){
+  try{
+    const res = await fetch(API, { cache: "no-store" });
+    const data = await res.json();
+
+    const playersRaw = getPlayers(data);
+
+    const filtered = playersRaw
+      .map(p => ({
+        name: p.name || p,
+        id: p.id || "N/A"
+      }))
+      .filter(p => is4P(p.name))
+      .sort((a,b)=>a.name.localeCompare(b.name));
+
+    cache = filtered;
+
+    document.getElementById("count").innerText = filtered.length;
+    document.getElementById("time").innerText = new Date().toLocaleTimeString();
+
+    render(filtered);
+
+  }catch(e){
+    console.error(e);
+    document.getElementById("players").innerHTML = `<div class='empty'>Failed to load data</div>`;
+  }
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  const val = e.target.value.toLowerCase();
+  render(cache.filter(p => p.name.toLowerCase().includes(val)));
+});
+
+load();
+setInterval(load, 5000);
+</script>
 
 </body>
 </html>
