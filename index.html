@@ -27,22 +27,24 @@
 body{
   font-family:Inter,sans-serif;
   background:
-    radial-gradient(circle at top, rgba(90,0,0,0.25), transparent 45%),
-    var(--bg);
+    radial-gradient(circle at top, rgba(120,0,0,0.25), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(90,0,0,0.18), transparent 35%),
+    linear-gradient(180deg,#090909,#050505);
+  background-attachment:fixed;
   color:var(--text);
   padding:16px;
   overflow-x:hidden;
 }
 
 .container{
-  max-width:900px;
+  max-width:1400px;
   margin:auto;
 }
 
 /* HEADER */
 .header{
   background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-  padding:22px;
+  padding:18px;
   border-radius:20px;
   margin-bottom:14px;
   box-shadow:0 10px 30px rgba(90,0,0,0.25);
@@ -53,7 +55,7 @@ body{
 }
 
 .logo{
-  width:140px;
+  width:120px;
   height:auto;
   object-fit:contain;
 }
@@ -62,24 +64,25 @@ body{
 .grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:12px;
+  gap:10px;
   margin-bottom:12px;
 }
 
 .card{
-  background:var(--card);
-  padding:16px;
+  background:rgba(20,20,20,0.9);
+  padding:14px;
   border-radius:16px;
-  border:1px solid rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.04);
+  backdrop-filter:blur(6px);
 }
 
 .label{
-  font-size:12px;
+  font-size:11px;
   color:var(--muted);
 }
 
 .big{
-  font-size:28px;
+  font-size:24px;
   font-weight:700;
   margin-top:6px;
 }
@@ -87,48 +90,89 @@ body{
 /* SEARCH */
 .search input{
   width:100%;
-  padding:14px;
+  padding:12px;
   border-radius:14px;
   border:none;
   outline:none;
-  background:var(--card);
+  background:rgba(20,20,20,0.9);
   color:white;
   margin-bottom:12px;
+  font-size:14px;
 }
 
 /* PLAYERS */
 .players{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:10px;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
 }
 
 .player{
-  background:var(--card);
-  padding:12px;
-  border-radius:14px;
-  border-left:4px solid var(--primary-light);
+  background:rgba(20,20,20,0.9);
+  padding:10px;
+  border-radius:12px;
+  border-left:3px solid var(--primary-light);
   transition:0.15s ease;
+  min-height:68px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  backdrop-filter:blur(6px);
+  position:relative;
+  overflow:hidden;
 }
 
 .player:hover{
   transform:translateY(-2px);
 }
 
+.priority{
+  border-left:3px solid #ff4444;
+  box-shadow:0 0 14px rgba(255,0,0,0.18);
+}
+
+/* NEW PLAYER PULSE */
+.player.new::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  border:1px solid rgba(255,80,80,0.8);
+  animation:pulse 1.5s ease infinite;
+  pointer-events:none;
+}
+
+@keyframes pulse{
+  0%{
+    opacity:1;
+    transform:scale(1);
+  }
+  70%{
+    opacity:0;
+    transform:scale(1.03);
+  }
+  100%{
+    opacity:0;
+    transform:scale(1.05);
+  }
+}
+
 .name{
   font-weight:600;
-  font-size:15px;
+  font-size:13px;
+  line-height:1.2;
   word-break:break-word;
 }
 
 .id{
-  margin-top:6px;
+  margin-top:5px;
   display:inline-block;
-  padding:6px 10px;
-  background:rgba(90,0,0,0.2);
+  padding:4px 8px;
+  background:rgba(90,0,0,0.18);
   border-radius:999px;
-  font-size:12px;
+  font-size:11px;
   color:#ffb3b3;
+  width:fit-content;
 }
 
 .empty{
@@ -146,18 +190,38 @@ body{
 }
 
 /* RESPONSIVE */
+@media(max-width:1200px){
+  .players{
+    grid-template-columns:repeat(4,1fr);
+  }
+}
+
 @media(max-width:900px){
+
+  .players{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:700px){
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
   .players{
     grid-template-columns:repeat(2,1fr);
   }
 }
 
-@media(max-width:600px){
+@media(max-width:500px){
+
   .players{
     grid-template-columns:1fr;
   }
+
   .logo{
-    width:110px;
+    width:100px;
   }
 }
 </style>
@@ -172,6 +236,7 @@ body{
   </div>
 
   <div class="grid">
+
     <div class="card">
       <div class="label">Total Online</div>
       <div class="big" id="count">0</div>
@@ -186,6 +251,7 @@ body{
       <div class="label">Last Refresh</div>
       <div class="big" id="time">-</div>
     </div>
+
   </div>
 
   <div class="search">
@@ -204,7 +270,17 @@ body{
 
 <script>
 const API = "https://servers-frontend.fivem.net/api/servers/single/7y66bb";
+
 let cache = [];
+
+const priorityPlayers = [
+  "4P | Jebat",
+  "4P | Sood Paragas",
+  "4P | Tukiman"
+];
+
+/* TRACK NEW PLAYERS */
+const seenPlayers = {};
 
 function is4P(name){
   return /4P/i.test(String(name));
@@ -220,6 +296,7 @@ function getPlayers(data){
 }
 
 function render(players){
+
   const el = document.getElementById("players");
 
   if(!players.length){
@@ -227,36 +304,70 @@ function render(players){
     return;
   }
 
-  el.innerHTML = players.map(p => `
-    <div class="player">
-      <div class="name">${p.name}</div>
-      <div class="id">ID: ${p.id ?? 'N/A'}</div>
-    </div>
-  `).join('');
+  el.innerHTML = players.map(p => {
+
+    const priority = priorityPlayers.includes(p.name);
+
+    return `
+      <div class="player ${priority ? 'priority' : ''} ${p.isNew ? 'new' : ''}">
+        <div class="name">${p.name}</div>
+        <div class="id">ID: ${p.id ?? 'N/A'}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function load(){
+
   try{
-    const res = await fetch(API, { cache: "no-store" });
+
+    const res = await fetch(API, { cache:"no-store" });
+
     const data = await res.json();
 
     const playersRaw = getPlayers(data);
 
     const filtered = playersRaw
+
       .map(p => ({
         name: p.name || p,
         id: p.id || "N/A"
       }))
+
       .filter(p => is4P(p.name))
-      .sort((a,b)=>a.name.localeCompare(b.name));
+
+      .map(p => {
+
+        const isNew = !seenPlayers[p.name];
+
+        seenPlayers[p.name] = true;
+
+        return {
+          ...p,
+          isNew
+        };
+      })
+
+      .sort((a,b) => {
+
+        const aPriority = priorityPlayers.includes(a.name);
+        const bPriority = priorityPlayers.includes(b.name);
+
+        if(aPriority && !bPriority) return -1;
+        if(!aPriority && bPriority) return 1;
+
+        return a.name.localeCompare(b.name);
+      });
 
     cache = filtered;
 
     document.getElementById("count").innerText = filtered.length;
-    document.getElementById("time").innerText = new Date().toLocaleTimeString();
 
-    // ✅ DATE FORMAT: 23 Jun
+    document.getElementById("time").innerText =
+      new Date().toLocaleTimeString();
+
     const d = new Date();
+
     const months = [
       "Jan","Feb","Mar","Apr","May","Jun",
       "Jul","Aug","Sep","Oct","Nov","Dec"
@@ -268,18 +379,27 @@ async function load(){
     render(filtered);
 
   }catch(e){
+
     console.error(e);
+
     document.getElementById("players").innerHTML =
       `<div class='empty'>Failed to load data</div>`;
   }
 }
 
 document.getElementById("search").addEventListener("input", e => {
+
   const val = e.target.value.toLowerCase();
-  render(cache.filter(p => p.name.toLowerCase().includes(val)));
+
+  render(
+    cache.filter(p =>
+      p.name.toLowerCase().includes(val)
+    )
+  );
 });
 
 load();
+
 setInterval(load, 5000);
 </script>
 
