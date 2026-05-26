@@ -10,8 +10,9 @@
 <style>
 :root{
   --primary:#5A0000;
-  --primary-dark:#2A0000;
-  --bg:#070707;
+  --primary-light:#7A1111;
+  --primary-dark:#3A0000;
+  --bg:#090909;
   --card:#141414;
   --text:#ffffff;
   --muted:#9a9a9a;
@@ -25,35 +26,34 @@
 
 body{
   font-family:Inter,sans-serif;
-  color:var(--text);
-  min-height:100vh;
-
   background:
-    radial-gradient(circle at top, rgba(90,0,0,0.35), transparent 60%),
-    radial-gradient(circle at bottom, rgba(90,0,0,0.15), transparent 60%),
+    radial-gradient(circle at top, rgba(90,0,0,0.25), transparent 45%),
     var(--bg);
+  color:var(--text);
+  padding:16px;
+  overflow-x:hidden;
 }
 
 .container{
   max-width:900px;
   margin:auto;
-  padding:16px;
 }
 
 /* HEADER */
 .header{
   background:linear-gradient(135deg,var(--primary),var(--primary-dark));
   padding:22px;
-  border-radius:18px;
+  border-radius:20px;
   margin-bottom:14px;
   box-shadow:0 10px 30px rgba(90,0,0,0.25);
+
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
 }
 
 .logo{
-  width:120px;
+  width:140px;
   height:auto;
   object-fit:contain;
 }
@@ -69,7 +69,7 @@ body{
 .card{
   background:var(--card);
   padding:16px;
-  border-radius:14px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,0.05);
 }
 
@@ -79,7 +79,7 @@ body{
 }
 
 .big{
-  font-size:26px;
+  font-size:28px;
   font-weight:700;
   margin-top:6px;
 }
@@ -88,7 +88,7 @@ body{
 .search input{
   width:100%;
   padding:14px;
-  border-radius:12px;
+  border-radius:14px;
   border:none;
   outline:none;
   background:var(--card);
@@ -106,8 +106,8 @@ body{
 .player{
   background:var(--card);
   padding:12px;
-  border-radius:12px;
-  border-left:4px solid #7A1111;
+  border-radius:14px;
+  border-left:4px solid var(--primary-light);
   transition:0.15s ease;
 }
 
@@ -124,8 +124,8 @@ body{
 .id{
   margin-top:6px;
   display:inline-block;
-  padding:5px 10px;
-  background:rgba(90,0,0,0.25);
+  padding:6px 10px;
+  background:rgba(90,0,0,0.2);
   border-radius:999px;
   font-size:12px;
   color:#ffb3b3;
@@ -140,17 +140,13 @@ body{
 
 .footer{
   text-align:center;
-  margin-top:18px;
-  color:#777;
-  font-size:12px;
+  margin-top:20px;
+  color:#888;
+  font-size:13px;
 }
 
 /* RESPONSIVE */
 @media(max-width:900px){
-  .grid{
-    grid-template-columns:1fr;
-  }
-
   .players{
     grid-template-columns:repeat(2,1fr);
   }
@@ -161,7 +157,7 @@ body{
     grid-template-columns:1fr;
   }
   .logo{
-    width:100px;
+    width:110px;
   }
 }
 </style>
@@ -177,17 +173,17 @@ body{
 
   <div class="grid">
     <div class="card">
-      <div class="label">Players Online</div>
+      <div class="label">Total Online</div>
       <div class="big" id="count">0</div>
     </div>
 
     <div class="card">
-      <div class="label">Today Date</div>
+      <div class="label">Date</div>
       <div class="big" id="date">-</div>
     </div>
 
     <div class="card">
-      <div class="label">Last Update</div>
+      <div class="label">Last Refresh</div>
       <div class="big" id="time">-</div>
     </div>
   </div>
@@ -210,15 +206,24 @@ body{
 const API = "https://servers-frontend.fivem.net/api/servers/single/7y66bb";
 let cache = [];
 
+function is4P(name){
+  return /4P/i.test(String(name));
+}
+
 function getPlayers(data){
-  return data?.Data?.players || data?.Data?.Players || [];
+  return (
+    data?.Data?.players ||
+    data?.Data?.Players ||
+    data?.Data?.clients ||
+    []
+  );
 }
 
 function render(players){
   const el = document.getElementById("players");
 
   if(!players.length){
-    el.innerHTML = `<div class='empty'>No players online</div>`;
+    el.innerHTML = `<div class='empty'>No 4P players online</div>`;
     return;
   }
 
@@ -237,20 +242,30 @@ async function load(){
 
     const playersRaw = getPlayers(data);
 
-    const formatted = playersRaw
+    const filtered = playersRaw
       .map(p => ({
-        name: p.name || "Unknown",
-        id: p.id ?? "N/A"
+        name: p.name || p,
+        id: p.id || "N/A"
       }))
+      .filter(p => is4P(p.name))
       .sort((a,b)=>a.name.localeCompare(b.name));
 
-    cache = formatted;
+    cache = filtered;
 
-    document.getElementById("count").innerText = formatted.length;
+    document.getElementById("count").innerText = filtered.length;
     document.getElementById("time").innerText = new Date().toLocaleTimeString();
-    document.getElementById("date").innerText = new Date().toLocaleDateString('en-GB');
 
-    render(formatted);
+    // ✅ DATE FORMAT: 23 Jun
+    const d = new Date();
+    const months = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec"
+    ];
+
+    document.getElementById("date").innerText =
+      d.getDate() + " " + months[d.getMonth()];
+
+    render(filtered);
 
   }catch(e){
     console.error(e);
