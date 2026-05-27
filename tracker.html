@@ -96,7 +96,17 @@ const priorityPlayers=[
 ];
 
 function isTag(name){
-  return String(name).toUpperCase().includes(TAG.toUpperCase());
+  const n = String(name).toUpperCase().trim();
+
+  // 302 / 3O2
+  if(TAG === '302'){
+    return /^(302|3O2)(\s|\||$)/i.test(n);
+  }
+
+  // Tag mesti di depan sahaja
+  const escapedTag = TAG.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+  return new RegExp('^' + escapedTag + '(\\s|\\||$)','i').test(n);
 }
 
 function getPlayers(data){
