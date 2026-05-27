@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tag Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --primary:#5A0000;
+  --primary-light:#7A1111;
+  --primary-dark:#3A0000;
+  --bg:#090909;
+  --card:#141414;
+  --text:#ffffff;
+  --muted:#9a9a9a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:Inter,sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(120,0,0,0.25), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(90,0,0,0.18), transparent 35%),
+    linear-gradient(180deg,#090909,#050505);
+  background-attachment:fixed;
+  color:var(--text);
+  padding:16px;
+  overflow-x:hidden;
+}
+.container{max-width:1400px;margin:auto;}
+.header{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  padding:18px;
+  border-radius:20px;
+  margin-bottom:14px;
+  box-shadow:0 10px 30px rgba(90,0,0,0.25);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.logo{width:120px;height:auto;object-fit:contain;}
+.back{
+  color:white;text-decoration:none;background:rgba(255,255,255,.1);
+  padding:10px 14px;border-radius:12px;font-weight:600;
+}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.card{background:rgba(20,20,20,0.9);padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,0.04);}
+.label{font-size:11px;color:var(--muted);}
+.big{font-size:24px;font-weight:700;margin-top:6px;}
+.search input{width:100%;padding:12px;border-radius:14px;border:none;outline:none;background:rgba(20,20,20,0.9);color:white;margin-bottom:12px;font-size:14px;}
+.players{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.player{background:rgba(20,20,20,.9);padding:10px;border-radius:12px;border-left:3px solid var(--primary-light);min-height:68px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.priority{border-left:3px solid #ff4444;box-shadow:0 0 14px rgba(255,0,0,.18);}
+.player.new::after{content:"";position:absolute;inset:0;border-radius:12px;border:1px solid rgba(255,80,80,.8);animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%{opacity:1}70%{opacity:0;transform:scale(1.03)}100%{opacity:0;transform:scale(1.05)}}
+.name{font-weight:600;font-size:13px;word-break:break-word;}
+.id{margin-top:5px;display:inline-block;padding:4px 8px;background:rgba(90,0,0,0.18);border-radius:999px;font-size:11px;color:#ffb3b3;width:fit-content;}
+.empty{text-align:center;color:var(--muted);padding:30px;grid-column:1/-1;}
+.footer{text-align:center;margin-top:20px;color:#888;font-size:13px;}
+@media(max-width:1200px){.players{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.players{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.players{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.players{grid-template-columns:1fr}.logo{width:100px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="index.html" class="back">← Back</a>
+    <img src="logo.png" class="logo" alt="Logo">
+    <div id="tagTitle" style="font-weight:700"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Total Online</div><div class="big" id="count">0</div></div>
+    <div class="card"><div class="label">Date</div><div class="big" id="date">-</div></div>
+    <div class="card"><div class="label">Last Refresh</div><div class="big" id="time">-</div></div>
+  </div>
+
+  <div class="search"><input id="search" placeholder="Search player name..." /></div>
+  <div class="players" id="players"><div class="empty">Loading...</div></div>
+  <div class="footer">Auto refresh every 5 seconds</div>
+</div>
+
+<script>
+const API='https://servers-frontend.fivem.net/api/servers/single/7y66bb';
+const TAG=new URLSearchParams(window.location.search).get('tag') || '4P';
+document.getElementById('tagTitle').innerText=TAG;
+
+let cache=[];
+const seenPlayers={};
+
+const priorityPlayers=[
+'4P | Jebat','4P | Sood Paragas','4P | Tukiman'
+];
+
+function isTag(name){
+  return String(name).toUpperCase().includes(TAG.toUpperCase());
+}
+
+function getPlayers(data){
+  return data?.Data?.players || data?.Data?.Players || data?.Data?.clients || [];
+}
+
+function render(players){
+  const el=document.getElementById('players');
+  if(!players.length){
+    el.innerHTML=`<div class='empty'>No ${TAG} players online</div>`;
+    return;
+  }
+
+  el.innerHTML=players.map(p=>{
+    const priority = TAG === '4P' && priorityPlayers.includes(p.name);
+    return `
+      <div class="player ${priority?'priority':''} ${p.isNew?'new':''}">
+        <div class="name">${p.name}</div>
+        <div class="id">ID: ${p.id ?? 'N/A'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function load(){
+try{
+  const res=await fetch(API,{cache:'no-store'});
+  const data=await res.json();
+
+  const filtered=getPlayers(data)
+    .map(p=>({name:p.name||p,id:p.id||'N/A'}))
+    .filter(p=>isTag(p.name))
+    .map(p=>{
+      const isNew=!seenPlayers[p.name];
+      seenPlayers[p.name]=true;
+      return {...p,isNew};
+    })
+    .sort((a,b)=>a.name.localeCompare(b.name));
+
+  cache=filtered;
+
+  document.getElementById('count').innerText=filtered.length;
+  document.getElementById('time').innerText=new Date().toLocaleTimeString();
+
+  const d=new Date();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('date').innerText=d.getDate()+' '+months[d.getMonth()];
+
+  render(filtered);
+}catch(e){
+  console.error(e);
+  document.getElementById('players').innerHTML=`<div class='empty'>Failed to load data</div>`;
+}
+}
+
+document.getElementById('search').addEventListener('input',e=>{
+  const val=e.target.value.toLowerCase();
+  render(cache.filter(p=>p.name.toLowerCase().includes(val)));
+});
+
+load();
+setInterval(load,5000);
+</script>
+</body>
+</html>
