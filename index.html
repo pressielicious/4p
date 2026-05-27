@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,7 +147,7 @@ body{
 
   <div class="stats">
     <a class="stat-card" href="tracker.html?tag=OTHERS">
-      <div class="label">Others Online</div>
+      <div class="label">Total Online</div>
       <div class="value" id="totalOnline">Loading...</div>
     </a>
   </div>
@@ -185,21 +186,6 @@ document.getElementById('tags').innerHTML = tags.map(tag =>
 `<a class="tag" href="tracker.html?tag=${tag}">${tag}</a>`
 ).join('');
 
-function hasKnownTag(name){
-  const n = String(name).toUpperCase().trim();
-
-  return tags.some(tag=>{
-    if(tag === '302'){
-      return /^(302|3O2)(\s|\||$)/.test(n);
-    }
-
-    const parts = n.split(/\s|\|/);
-    const first = parts[0] || '';
-
-    return first === tag;
-  });
-}
-
 async function loadTotal(){
   try{
     const res = await fetch(API,{cache:'no-store'});
@@ -211,11 +197,7 @@ async function loadTotal(){
       data?.Data?.clients ||
       [];
 
-    const others = players.filter(p=>{
-      return !hasKnownTag(p.name || '');
-    });
-
-    document.getElementById('totalOnline').innerText = others.length;
+    document.getElementById('totalOnline').innerText = players.length;
 
   }catch(e){
     console.error(e);
