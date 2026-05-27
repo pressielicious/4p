@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tag Tracker</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -15,7 +16,13 @@
   --card:#141414;
   --text:#fff;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
 body{
   font-family:Inter,sans-serif;
   background:
@@ -26,20 +33,58 @@ body{
   min-height:100vh;
   padding:20px;
 }
-.container{max-width:1200px;margin:auto;}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+}
+
 .header{
   background:linear-gradient(135deg,var(--primary),var(--primary-dark));
   padding:20px;
   border-radius:20px;
   text-align:center;
   margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(90,0,0,.25);
 }
-.logo{width:120px;max-width:100%;}
+
+.logo{
+  width:120px;
+  max-width:100%;
+}
+
+.stats{
+  margin-bottom:20px;
+}
+
+.stat-card{
+  background:rgba(20,20,20,.9);
+  border:1px solid rgba(255,255,255,.05);
+  border-left:4px solid var(--primary-light);
+  border-radius:16px;
+  padding:20px;
+  text-align:center;
+}
+
+.label{
+  font-size:12px;
+  color:#999;
+  margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.value{
+  font-size:36px;
+  font-weight:700;
+}
+
 .grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:12px;
 }
+
 .tag{
   text-decoration:none;
   background:rgba(20,20,20,.9);
@@ -53,32 +98,106 @@ body{
   font-weight:700;
   transition:.15s ease;
 }
+
 .tag:hover{
   transform:translateY(-3px);
   background:rgba(30,30,30,.95);
 }
-@media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:500px){.grid{grid-template-columns:1fr}}
+
+@media(max-width:900px){
+  .grid{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:700px){
+  .grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:500px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .value{
+    font-size:30px;
+  }
+}
 </style>
 </head>
 <body>
+
 <div class="container">
+
   <div class="header">
     <img src="logo.png" class="logo" alt="Logo">
   </div>
 
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Online</div>
+      <div class="value" id="totalOnline">Loading...</div>
+    </div>
+  </div>
+
   <div class="grid" id="tags"></div>
+
 </div>
 
 <script>
+const API='https://servers-frontend.fivem.net/api/servers/single/7y66bb';
+
 const tags = [
-'D7','TLW','KGE','4P','BMS','DRM','HST','69D','302','KPK','KAP','DVX','TTS','BLG','CBR','WAR','MDS','HGS','TRL','PDAB'
+'D7',
+'TLW',
+'KGE',
+'4P',
+'BMS',
+'DRM',
+'HST',
+'69D',
+'302',
+'KPK',
+'KAP',
+'DVX',
+'TTS',
+'BLG',
+'CBR',
+'WAR',
+'MDS',
+'HGS',
+'TRL',
+'PDAB'
 ];
 
 document.getElementById('tags').innerHTML = tags.map(tag =>
 `<a class="tag" href="tracker.html?tag=${tag}">${tag}</a>`
 ).join('');
+
+async function loadTotal(){
+  try{
+    const res = await fetch(API,{cache:'no-store'});
+    const data = await res.json();
+
+    const players =
+      data?.Data?.players ||
+      data?.Data?.Players ||
+      data?.Data?.clients ||
+      [];
+
+    document.getElementById('totalOnline').innerText = players.length;
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('totalOnline').innerText = 'Error';
+  }
+}
+
+loadTotal();
+setInterval(loadTotal,5000);
 </script>
+
 </body>
 </html>
