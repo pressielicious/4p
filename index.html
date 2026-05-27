@@ -76,9 +76,9 @@ const tags = [
 'D7','TLW','KGE','4P','BMS','DRM','HST','69D','302','KPK','KAP','DVX','TTS','BLG','CBR','WAR','MDS','HLG','TRL','PDAB'
 ];
 
-document.getElementById('tags').innerHTML = tags.map(tag => `
-<a class="tag" href="tracker.html?tag=${tag}">${tag}</a>
-`).join('');
+document.getElementById('tags').innerHTML = tags.map(tag =>
+`<a class="tag" href="tracker.html?tag=${tag}">${tag}</a>`
+).join('');
 </script>
 </body>
 </html>
