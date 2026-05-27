@@ -40,10 +40,7 @@ body{
   justify-content:space-between;
 }
 .logo{width:120px;height:auto;object-fit:contain;}
-.back{
-  color:white;text-decoration:none;background:rgba(255,255,255,.1);
-  padding:10px 14px;border-radius:12px;font-weight:600;
-}
+.back{color:white;text-decoration:none;background:rgba(255,255,255,.1);padding:10px 14px;border-radius:12px;font-weight:600;}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
 .card{background:rgba(20,20,20,0.9);padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,0.04);}
 .label{font-size:11px;color:var(--muted);}
@@ -98,15 +95,18 @@ const priorityPlayers=[
 function isTag(name){
   const n = String(name).toUpperCase().trim();
 
+  const tag = TAG.toUpperCase();
+
   // 302 / 3O2
-  if(TAG === '302'){
-    return /^(302|3O2)(\s|\||$)/i.test(n);
+  if(tag === '302'){
+    return /^(302|3O2)(\s|\||$)/.test(n);
   }
 
-  // Tag mesti di depan sahaja
-  const escapedTag = TAG.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  // STRICT PREFIX ONLY (fix KAP leak)
+  const parts = n.split(/\s|\|/);
+  const first = parts[0] || '';
 
-  return new RegExp('^' + escapedTag + '(\\s|\\||$)','i').test(n);
+  return first === tag;
 }
 
 function getPlayers(data){
