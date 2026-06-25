@@ -141,24 +141,40 @@ body{
 
 <div class="container">
 
-  <div class="header">
-    <img src="logo.png" class="logo" alt="Logo">
-  </div>
-
   <div class="stats">
-    <a class="stat-card" href="tracker.html?tag=OTHERS">
-      <div class="label">Total Online</div>
-      <div class="value" id="totalOnline">Loading...</div>
-    </a>
-  </div>
+  <a class="stat-card" href="tracker.html?tag=OTHERS">
+    <div class="label">Total Online</div>
+    <div class="value" id="totalOnline">Loading...</div>
+  </a>
+</div>
 
-  <div class="grid" id="tags"></div>
+<input
+  id="quickSearch"
+  placeholder="🔍 Quick Search Name / ID..."
+  style="
+    width:100%;
+    padding:16px;
+    margin-bottom:15px;
+    border:none;
+    border-radius:16px;
+    background:rgba(20,20,20,.9);
+    color:white;
+    font-size:15px;
+    outline:none;
+  "
+>
+
+<div id="searchResults"></div>
+
+<div class="grid" id="tags"></div>
 
 </div>
 
 <script>
 const API='https://frontend.cfx-services.net/api/servers/single/pm88d7';
 
+let allPlayers = [];
+  
 const tags = [
 'D7',
 '4P',
@@ -197,13 +213,43 @@ async function loadTotal(){
       data?.Data?.clients ||
       [];
 
-    document.getElementById('totalOnline').innerText = players.length;
+    allPlayers = players;
+document.getElementById('totalOnline').innerText = players.length;
 
   }catch(e){
     console.error(e);
     document.getElementById('totalOnline').innerText = 'Error';
   }
 }
+
+document.getElementById('quickSearch').addEventListener('input',e=>{
+
+  const q=e.target.value.toLowerCase().trim();
+
+  if(!q){
+    document.getElementById('searchResults').innerHTML='';
+    return;
+  }
+
+  const results=allPlayers.filter(p=>
+    String(p.name||'').toLowerCase().includes(q) ||
+    String(p.id||'').includes(q)
+  );
+
+  document.getElementById('searchResults').innerHTML=
+    results.slice(0,20).map(p=>`
+      <div style="
+        background:rgba(20,20,20,.9);
+        padding:12px;
+        margin-bottom:6px;
+        border-radius:12px;
+        border-left:4px solid #7A1111;
+      ">
+        <b>${p.name||'Unknown'}</b><br>
+        ID: ${p.id||'N/A'}
+      </div>
+    `).join('');
+});
 
 loadTotal();
 setInterval(loadTotal,5000);
