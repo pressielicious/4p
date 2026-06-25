@@ -236,7 +236,7 @@ body{
   </div>
 
   <div class="search">
-    <input id="search" placeholder="Search player name..." />
+    <input id="search" placeholder="Search player name or ID..." />
   </div>
 
   <div class="players" id="players">
@@ -338,18 +338,21 @@ async function load(){
     const data=await res.json();
 
     const filtered=getPlayers(data)
-      .map(p=>({
-        name:p.name||p.Name,
-        id:p.id||'N/A'
-      }))
-      .filter(p=>isTag(p.name))
-      .map(p=>{
-        const isNew=!seenPlayers[p.name];
-        seenPlayers[p.name]=true;
-        return {...p,isNew};
-      })
-      .sort((a,b)=>a.name.localeCompare(b.name));
-
+  .map(p=>({
+    name:p.name||p.Name,
+    id:p.id||'N/A'
+  }))
+  .filter(p=>isTag(p.name))
+  .map(p=>{
+    const isNew=!seenPlayers[p.name];
+    seenPlayers[p.name]=true;
+    return {...p,isNew};
+  })
+  .sort((a,b)=>{
+    const idA=parseInt(a.id)||999999;
+    const idB=parseInt(b.id)||999999;
+    return idA-idB;
+  });
     cache=filtered;
 
     document.getElementById('count').innerText=filtered.length;
@@ -372,11 +375,12 @@ async function load(){
 }
 
 document.getElementById('search').addEventListener('input',e=>{
-  const val=e.target.value.toLowerCase();
+  const val=e.target.value.toLowerCase().trim();
 
   render(
     cache.filter(p=>
-      p.name.toLowerCase().includes(val)
+      p.name.toLowerCase().includes(val) ||
+      String(p.id).toLowerCase().includes(val)
     )
   );
 });
